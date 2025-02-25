@@ -60,16 +60,6 @@
   - cover: 资源链接
   - episodes: 集数（可选）
 - 返回格式：
-### 2. 资源添加API (apiadd.php)
-
-#### 添加资源
-- 请求方式：GET/POST
-- 参数：
-  - authorization: API密钥
-  - title: 资源标题
-  - cover: 资源链接
-  - episodes: 集数（可选）
-- 返回格式：
 ```json
 {
     "success": true/false,
