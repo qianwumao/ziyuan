@@ -84,7 +84,7 @@ https://你的域名/apiadd.php?authorization=API密钥&title=视频标题&cover
 ```
 
 ### 3. 夸克网盘API (quark.php)
-
+- 配置第535行的站点域名与密钥
 #### 资源转存
 - 请求方式：GET
 - 参数：
