@@ -5,14 +5,12 @@
 ## 安装说明
 
 1. 环境要求
-2. ```
    - PHP 7.0+
    - SQLite3
    - PHP PDO扩展
    - PHP CURL扩展
-   ```
 
-3. 安装步骤
+2. 安装步骤
 ```bash
 # 1. 复制项目文件到网站根目录
 
@@ -23,11 +21,10 @@
 ```
 
 3. 配置说明
-4. ```
    - ADMIN_PASSWORD：管理后台密码
    - QUARK_COOKIE：夸克网盘Cookie
    - API_KEY：API访问密钥
-   ```
+
 
 ## API接口说明
 
