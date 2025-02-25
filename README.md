@@ -5,12 +5,14 @@
 ## 安装说明
 
 1. 环境要求
+2. ```
    - PHP 7.0+
    - SQLite3
    - PHP PDO扩展
    - PHP CURL扩展
+   ```
 
-2. 安装步骤
+3. 安装步骤
 ```bash
 # 1. 复制项目文件到网站根目录
 
@@ -21,9 +23,11 @@
 ```
 
 3. 配置说明
+4. ```
    - ADMIN_PASSWORD：管理后台密码
    - QUARK_COOKIE：夸克网盘Cookie
    - API_KEY：API访问密钥
+   ```
 
 ## API接口说明
 
@@ -77,11 +81,13 @@
 ```
 
 #### 直接链接请求示例：
-```
-# GET方式添加资源
-https://你的域名/apiadd.php?authorization=API密钥&title=视频标题&cover=https://pan.quark.cn/s/3f5c2c7c8d9e&episodes=20
 
+# GET方式添加资源
+```
+https://你的域名/apiadd.php?authorization=API密钥&title=视频标题&cover=https://pan.quark.cn/s/3f5c2c7c8d9e&episodes=20
+```
 # 返回结果示例
+```
 {
     "success": true,
     "data": null,
@@ -112,14 +118,17 @@ https://你的域名/apiadd.php?authorization=API密钥&title=视频标题&cover
 ```
 
 #### 直接链接请求示例：
-```
+
 # 转存文件
+```
 https://你的域名/quark.php?action=save&url=https://pan.quark.cn/s/3f5c2c7c8d9e&title=自定义标题
-
+```
 # 查询任务状态
+```
 https://你的域名/quark.php?action=status&taskId=12345678
-
+```
 # 转存成功返回示例
+```
 {
     "code": 0,
     "msg": "转存成功",
@@ -129,8 +138,9 @@ https://你的域名/quark.php?action=status&taskId=12345678
         "shareLink": "https://pan.quark.cn/s/newsharelink"
     }
 }
-
+```
 # 任务状态返回示例
+```
 {
     "code": 0,
     "msg": "获取任务状态成功",
