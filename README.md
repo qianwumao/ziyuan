@@ -151,6 +151,7 @@ https://你的域名/quark.php?action=status&taskId=12345678
    - 建议定期备份SQLite数据库文件
    - 可以使用导出功能备份数据
 
+[QuarkPanTool](https://github.com/ihmily/QuarkPanTool) 夸克转存使用QuarkPanTool改
 
 
 ## 免责声明：本工具仅供学习和研究使用，请勿用于非法目的。由使用本工具引起的任何法律责任，与本工具作者无关。
