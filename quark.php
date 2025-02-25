@@ -532,7 +532,7 @@ class QuarkManager {
                             try {
                                 $title = $customTitle ?: $detail['fileList'][0]['fileName'] ?? '';
                                 $apiUrl = sprintf(
-                                    'https://api.q5url.cn/ziyuan/apiadd.php?authorization=980225717&title=%s&cover=%s&episodes=0',
+                                    'https://你的域名/apiadd.php?authorization=api密钥&title=%s&cover=%s&episodes=0',
                                     urlencode($title),
                                     urlencode($shareLink)
                                 );
