@@ -638,6 +638,25 @@ try {
             display: flex;
             justify-content: center;
             align-items: center;
+            pointer-events: none;
+        }
+
+        #qrcode * {
+            pointer-events: none !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+        }
+
+        #qrcode img {
+            pointer-events: none !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            -webkit-touch-callout: none !important;
+            -webkit-user-drag: none !important;
         }
         
         .modal-content p {
@@ -1066,7 +1085,7 @@ try {
             return { name: '迅雷APP', color: '#0088ff', icon: 'images/xl.png' };
         } else if (url.includes('pan.quark.cn')) {
             return { name: '夸克APP', color: '#0088ff', icon: 'images/kk.png' };
-        } else if (url.includes('pan.uc.cn')) {
+        } else if (url.includes('drive.uc.cn')) {
             return { name: 'UC浏览器APP', color: '#0088ff', icon: 'images/uc.png' };
         } else {
             return { name: '网盘', color: '#0088ff', icon: 'images/all.png' };
@@ -1085,22 +1104,51 @@ try {
         
         // 更新标题和提示文本
         modalTitle.innerHTML = `<img src="${diskType.icon}" alt="${diskType.name}" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">${diskType.name}扫码访问`;
-        modalTip.textContent = `请使用${diskType.name}APP扫描二维码访问`;
+        modalTip.textContent = `请使用${diskType.name}扫描二维码访问`;
         modalTitle.style.color = diskType.color;
         
         // 清除旧的二维码
         qrcodeContainer.innerHTML = '';
         
         // 生成新的二维码
-        new QRCode(qrcodeContainer, {
+        const qrcode = new QRCode(qrcodeContainer, {
             text: url,
             width: 180,
             height: 180,
             colorDark: "#000000",
             colorLight: "#ffffff",
-            correctLevel: QRCode.CorrectLevel.H
+            correctLevel: QRCode.CorrectLevel.H,
+            title: ''
         });
-        
+
+        // 移除二维码图片的所有提示和事件
+        const observer = new MutationObserver((mutations) => {
+            const qrImage = qrcodeContainer.querySelector('img');
+            if (qrImage) {
+                qrImage.removeAttribute('title');
+                qrImage.removeAttribute('alt');
+                qrImage.style.pointerEvents = 'none';
+                qrImage.addEventListener('mouseover', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }, true);
+                observer.disconnect();
+            }
+        });
+
+        observer.observe(qrcodeContainer, {
+            childList: true,
+            subtree: true
+        });
+
+        // 阻止容器的默认事件
+        qrcodeContainer.addEventListener('mouseover', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, true);
+
         modal.style.display = 'flex';
     }
     
