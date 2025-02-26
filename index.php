@@ -5,6 +5,12 @@ ini_set('display_errors', 1);
 require_once 'config.php';
 require_once 'Database.php';
 
+// 添加设备检测函数
+function isMobile() {
+    $useragent = $_SERVER['HTTP_USER_AGENT'];
+    return preg_match('/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i',$useragent)||preg_match('/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i',substr($useragent,0,4));
+}
+
 // 获取当前页码
 $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 $pageSize = 20;
@@ -14,6 +20,21 @@ $keyword = isset($_GET['keyword']) ? trim($_GET['keyword']) : '';
 
 // 获取网盘类型筛选
 $diskType = isset($_GET['disk']) ? $_GET['disk'] : 'all';
+
+// 添加网盘类型判断函数
+function getDiskType($url) {
+    if (strpos($url, 'pan.baidu.com') !== false) {
+        return ['name' => '百度网盘APP', 'color' => '#06a7ff', 'icon' => 'images/bd.png'];
+    } elseif (strpos($url, 'pan.xunlei.com') !== false) {
+        return ['name' => '迅雷APP', 'color' => '#0088ff', 'icon' => 'images/xl.png'];
+    } elseif (strpos($url, 'pan.quark.cn') !== false) {
+        return ['name' => '夸克APP', 'color' => '#0088ff', 'icon' => 'images/kk.png'];
+    } elseif (strpos($url, 'drive.uc.cn') !== false) {
+        return ['name' => 'UC浏览器APP', 'color' => '#0088ff', 'icon' => 'images/uc.png'];
+    } else {
+        return ['name' => '网盘', 'color' => '#0088ff', 'icon' => 'images/all.png'];
+    }
+}
 
 try {
     $db = new Database();
@@ -576,12 +597,210 @@ try {
         .disk-button {
             display: none;
         }
+
+        /* 更新弹窗样式 */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: var(--card-background, #fff);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 90%;
+            width: 360px;
+        }
+        
+        .modal-content h3 {
+            margin: 0 0 20px 0;
+            font-size: 18px;
+            color: var(--text-color, #333);
+        }
+
+        #qrcode {
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 0 auto 20px;
+            width: 180px;
+            height: 180px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content p {
+            margin: 0 0 20px 0;
+            color: var(--text-color, #666);
+            font-size: 14px;
+        }
+        
+        .modal-content button {
+            background: var(--primary-color, #0088ff);
+            color: #fff;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .modal-content button:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .modal-content {
+                border: 1px solid var(--border-color);
+            }
+            #qrcode {
+                border: 1px solid var(--border-color);
+            }
+        }
     </style>
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#f5f7fa" media="(prefers-color-scheme: light)">
     <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+    <script>
+    // 禁用右键菜单
+    document.oncontextmenu = function(e) {
+        e.preventDefault();
+        return false;
+    };
+
+    // 禁用F12、Ctrl+Shift+I、Ctrl+Shift+J、Ctrl+Shift+C、Ctrl+U
+    document.onkeydown = function(e) {
+        if (e.keyCode === 123 || // F12
+            (e.ctrlKey && e.shiftKey && e.keyCode === 73) || // Ctrl+Shift+I
+            (e.ctrlKey && e.shiftKey && e.keyCode === 74) || // Ctrl+Shift+J
+            (e.ctrlKey && e.shiftKey && e.keyCode === 67) || // Ctrl+Shift+C
+            (e.ctrlKey && e.keyCode === 85)) { // Ctrl+U
+            e.preventDefault();
+            return false;
+        }
+    };
+
+    // 禁用开发者工具
+    function disableDevTools() {
+        let devtools = {
+            isOpen: false,
+            orientation: undefined
+        };
+        
+        const threshold = 160;
+        const emitEvent = (isOpen, orientation) => {
+            devtools.isOpen = isOpen;
+            devtools.orientation = orientation;
+        };
+
+        const checkDevTools = ({emitEvents = true} = {}) => {
+            const widthThreshold = window.outerWidth - window.innerWidth > threshold;
+            const heightThreshold = window.outerHeight - window.innerHeight > threshold;
+            const orientation = widthThreshold ? 'vertical' : 'horizontal';
+
+            if (
+                !(heightThreshold && widthThreshold) &&
+                ((window.Firebug && window.Firebug.chrome && window.Firebug.chrome.isInitialized) || widthThreshold || heightThreshold)
+            ) {
+                if (emitEvents && !devtools.isOpen) {
+                    emitEvent(true, orientation);
+                    window.location.reload();
+                }
+            } else {
+                if (emitEvents && devtools.isOpen) {
+                    emitEvent(false, undefined);
+                }
+            }
+
+            if (window.devtools.isOpen) {
+                window.location.reload();
+            }
+        };
+
+        // 检测打开控制台的快捷键
+        window.addEventListener('keydown', function(e) {
+            if ((e.key === 'F12') || 
+                (e.ctrlKey && e.shiftKey && e.key === 'I') || 
+                (e.ctrlKey && e.shiftKey && e.key === 'J') || 
+                (e.ctrlKey && e.shiftKey && e.key === 'C')) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // 定期检查，但降低检查频率
+        setInterval(checkDevTools, 2000);
+    }
+
+    // 页面加载完成后启用保护
+    window.onload = function() {
+        setTimeout(disableDevTools, 1000);
+    };
+    </script>
 </head>
 <body>
+    <!-- 添加复制保护 -->
+    <div style="display:none;" aria-hidden="true">
+        禁止查看源代码
+        <?php
+        // 随机生成大量注释，混淆源代码
+        for($i = 0; $i < 1000; $i++) {
+            echo "<!-- " . md5(uniqid()) . " -->\n";
+        }
+        ?>
+    </div>
+    
+    <!-- 添加选中保护 -->
+    <style>
+        body {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+    </style>
+
+    <script>
+    // 禁止控制台打印
+    console.log = function() {};
+    console.info = function() {};
+    console.warn = function() {};
+    console.error = function() {};
+    console.debug = function() {};
+    
+    // 清除控制台
+    setInterval(function() {
+        console.clear();
+    }, 1000);
+    </script>
+
+    <!-- 更新弹窗HTML -->
+    <div id="mobileModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 id="modalTitle">扫码访问</h3>
+            <div id="qrcode"></div>
+            <p id="modalTip">请使用手机扫描二维码访问</p>
+            <button onclick="closeModal()">关闭</button>
+        </div>
+    </div>
+    
     <div class="container">
         <div class="header">
             <h1>持续更新中...</h1>
@@ -656,7 +875,10 @@ try {
                             }
                         }
                     ?>
-                    <a href="<?php echo htmlspecialchars($cleanLink); ?>" class="item" target="_blank">
+                    <a href="<?php echo htmlspecialchars($cleanLink); ?>" 
+                       class="item" 
+                       data-url="<?php echo htmlspecialchars($cleanLink); ?>"
+                       <?php echo !isMobile() ? '' : 'target="_blank"'; ?>>
                         <span class="item-title">
                             <?php echo htmlspecialchars($item['title']); ?>
                         </span>
@@ -827,6 +1049,84 @@ try {
 
                 // 提交表单以刷新页面
                 searchForm.submit();
+            });
+        });
+    });
+
+    // 获取当前环境是否为移动设备
+    function isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+    
+    // 获取网盘类型
+    function getDiskType(url) {
+        if (url.includes('pan.baidu.com')) {
+            return { name: '百度网盘APP', color: '#06a7ff', icon: 'images/bd.png' };
+        } else if (url.includes('pan.xunlei.com')) {
+            return { name: '迅雷APP', color: '#0088ff', icon: 'images/xl.png' };
+        } else if (url.includes('pan.quark.cn')) {
+            return { name: '夸克APP', color: '#0088ff', icon: 'images/kk.png' };
+        } else if (url.includes('pan.uc.cn')) {
+            return { name: 'UC浏览器APP', color: '#0088ff', icon: 'images/uc.png' };
+        } else {
+            return { name: '网盘', color: '#0088ff', icon: 'images/all.png' };
+        }
+    }
+    
+    // 显示弹窗
+    function showModal(url) {
+        const modal = document.getElementById('mobileModal');
+        const qrcodeContainer = document.getElementById('qrcode');
+        const modalTitle = document.getElementById('modalTitle');
+        const modalTip = document.getElementById('modalTip');
+        
+        // 获取网盘类型
+        const diskType = getDiskType(url);
+        
+        // 更新标题和提示文本
+        modalTitle.innerHTML = `<img src="${diskType.icon}" alt="${diskType.name}" style="width: 20px; height: 20px; vertical-align: middle; margin-right: 8px;">${diskType.name}扫码访问`;
+        modalTip.textContent = `请使用${diskType.name}APP扫描二维码访问`;
+        modalTitle.style.color = diskType.color;
+        
+        // 清除旧的二维码
+        qrcodeContainer.innerHTML = '';
+        
+        // 生成新的二维码
+        new QRCode(qrcodeContainer, {
+            text: url,
+            width: 180,
+            height: 180,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+        
+        modal.style.display = 'flex';
+    }
+    
+    // 关闭弹窗
+    function closeModal() {
+        document.getElementById('mobileModal').style.display = 'none';
+    }
+    
+    // 点击遮罩层关闭弹窗
+    document.getElementById('mobileModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+
+    // 页面加载完成后设置链接点击事件
+    document.addEventListener('DOMContentLoaded', function() {
+        const links = document.querySelectorAll('.item');
+        
+        links.forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                if (!isMobile()) {
+                    e.preventDefault();
+                    const url = this.getAttribute('data-url');
+                    showModal(url);
+                }
             });
         });
     });
