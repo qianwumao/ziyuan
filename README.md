@@ -21,6 +21,9 @@
 
 # 3. 修改配置文件
 # 编辑 config.php，设置管理员密码和夸克网盘Cookie
+
+# 4.quark.php配置
+# 第535行的站点域名与密钥
 ```
 
 3. 配置说明
@@ -86,7 +89,7 @@ https://你的域名/apiadd.php?authorization=API密钥&title=视频标题&cover
 ```
 
 ### 3. 夸克网盘API (quark.php)
-- 配置第535行的站点域名与密钥
+
 #### 资源转存
 - 请求方式：GET
 - 参数：
