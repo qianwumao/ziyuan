@@ -28,7 +28,7 @@
 # 5.get_url.php配置
 # 第535行的站点域名与密钥
 
-# 6.quark.php和index.php配置
+# 6.get_url.php和index.php配置
 # 配置相同的秘钥用于加密链接quark.php第8行和index.php第10行
 
 # 7.index.php顶部按钮头像配置
