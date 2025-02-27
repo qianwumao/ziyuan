@@ -29,7 +29,7 @@
 # 第535行的站点域名与密钥
 
 # 6.get_url.php和index.php配置
-# 配置相同的秘钥用于加密链接quark.php第8行和index.php第10行
+# 配置相同的秘钥用于加密链接get_url.php第8行和index.php第10行
 
 # 7.index.php顶部按钮头像配置
 # 头像图片改名为avatar.png，微信二维码图片改名wechat-qr.png，放置images文件夹
