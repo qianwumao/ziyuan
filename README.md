@@ -24,6 +24,17 @@
 
 # 4.quark.php配置
 # 第535行的站点域名与密钥
+
+# 5.get_url.php配置
+# 第535行的站点域名与密钥
+
+# 6.quark.php和index.php配置
+# 配置相同的秘钥用于加密链接quark.php第8行和index.php第10行
+
+# 7.index.php顶部按钮头像配置
+# 头像图片改名为avatar.png，微信二维码图片改名wechat-qr.png，放置images文件夹
+# 修改1041-1050行按钮配置  
+
 ```
 
 3. 配置说明
