@@ -5,10 +5,63 @@ ini_set('display_errors', 1);
 require_once 'config.php';
 require_once 'Database.php';
 
-// 添加设备检测函数
+// 添加加密函数
+function encryptUrl($url) {
+    $key = "YOUR_SECRET_KEY"; // 建议使用复杂的密钥
+    $ivlen = openssl_cipher_iv_length($cipher = "AES-256-CBC");
+    $iv = openssl_random_pseudo_bytes($ivlen);
+    $encrypted = openssl_encrypt($url, $cipher, $key, 0, $iv);
+    return base64_encode($iv . $encrypted);
+}
+
+// 添加严格的环境检测函数
 function isMobile() {
-    $useragent = $_SERVER['HTTP_USER_AGENT'];
-    return preg_match('/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i',$useragent)||preg_match('/1207|6310|6590|3gso|4thp|50[1-6]i|770s|802s|a wa|abac|ac(er|oo|s\-)|ai(ko|rn)|al(av|ca|co)|amoi|an(ex|ny|yw)|aptu|ar(ch|go)|as(te|us)|attw|au(di|\-m|r |s )|avan|be(ck|ll|nq)|bi(lb|rd)|bl(ac|az)|br(e|v)w|bumb|bw\-(n|u)|c55\/|capi|ccwa|cdm\-|cell|chtm|cldc|cmd\-|co(mp|nd)|craw|da(it|ll|ng)|dbte|dc\-s|devi|dica|dmob|do(c|p)o|ds(12|\-d)|el(49|ai)|em(l2|ul)|er(ic|k0)|esl8|ez([4-7]0|os|wa|ze)|fetc|fly(\-|_)|g1 u|g560|gene|gf\-5|g\-mo|go(\.w|od)|gr(ad|un)|haie|hcit|hd\-(m|p|t)|hei\-|hi(pt|ta)|hp( i|ip)|hs\-c|ht(c(\-| |_|a|g|p|s|t)|tp)|hu(aw|tc)|i\-(20|go|ma)|i230|iac( |\-|\/)|ibro|idea|ig01|ikom|im1k|inno|ipaq|iris|ja(t|v)a|jbro|jemu|jigs|kddi|keji|kgt( |\/)|klon|kpt |kwc\-|kyo(c|k)|le(no|xi)|lg( g|\/(k|l|u)|50|54|\-[a-w])|libw|lynx|m1\-w|m3ga|m50\/|ma(te|ui|xo)|mc(01|21|ca)|m\-cr|me(rc|ri)|mi(o8|oa|ts)|mmef|mo(01|02|bi|de|do|t(\-| |o|v)|zz)|mt(50|p1|v )|mwbp|mywa|n10[0-2]|n20[2-3]|n30(0|2)|n50(0|2|5)|n7(0(0|1)|10)|ne((c|m)\-|on|tf|wf|wg|wt)|nok(6|i)|nzph|o2im|op(ti|wv)|oran|owg1|p800|pan(a|d|t)|pdxg|pg(13|\-([1-8]|c))|phil|pire|pl(ay|uc)|pn\-2|po(ck|rt|se)|prox|psio|pt\-g|qa\-a|qc(07|12|21|32|60|\-[2-7]|i\-)|qtek|r380|r600|raks|rim9|ro(ve|zo)|s55\/|sa(ge|ma|mm|ms|ny|va)|sc(01|h\-|oo|p\-)|sdk\/|se(c(\-|0|1)|47|mc|nd|ri)|sgh\-|shar|sie(\-|m)|sk\-0|sl(45|id)|sm(al|ar|b3|it|t5)|so(ft|ny)|sp(01|h\-|v\-|v )|sy(01|mb)|t2(18|50)|t6(00|10|18)|ta(gt|lk)|tcl\-|tdg\-|tel(i|m)|tim\-|t\-mo|to(pl|sh)|ts(70|m\-|m3|m5)|tx\-9|up(\.b|g1|si)|utst|v400|v750|veri|vi(rg|te)|vk(40|5[0-3]|\-v)|vm40|voda|vulc|vx(52|53|60|61|70|80|81|83|85|98)|w3c(\-| )|webc|whit|wi(g |nc|nw)|wmlb|wonu|x700|yas\-|your|zeto|zte\-/i',substr($useragent,0,4));
+    $useragent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+    
+    // 检查是否是微信环境
+    $isWechat = strpos($useragent, 'MicroMessenger') !== false;
+    
+    // 检查是否是QQ环境（更严格的检测）
+    $isQQ = false;
+    if (strpos($useragent, 'Mobile') !== false) {  // 必须是移动设备
+        if (strpos($useragent, 'QQ/') !== false) {  // QQ内置浏览器
+            $isQQ = true;
+        } elseif (strpos($useragent, 'MQQBrowser') !== false && strpos($useragent, ' QQ') !== false) {  // QQ浏览器且在QQ内
+            $isQQ = true;
+        }
+    }
+    
+    // 检查是否是模拟器或开发者工具
+    $isFake = (strpos($useragent, 'Chrome') !== false && strpos($useragent, 'Mobile') !== false && strpos($useragent, 'Safari') === false) || 
+              strpos($useragent, 'DevTools') !== false;
+    
+    // 只有在真实的微信或QQ环境中才返回true
+    return ($isWechat || $isQQ) && !$isFake;
+}
+
+// 添加更详细的环境检测函数
+function getEnvironmentType() {
+    $useragent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
+    
+    // 检查是否是模拟器或开发者工具
+    $isFake = strpos($useragent, 'Chrome/') !== false && 
+              (strpos($useragent, 'Mobile Safari') === false || 
+               strpos($useragent, 'DevTools') !== false);
+    
+    if ($isFake) {
+        return 'emulator';
+    }
+    
+    if (strpos($useragent, 'MicroMessenger') !== false) {
+        return 'wechat';
+    } elseif ((strpos($useragent, 'QQ/') !== false && strpos($useragent, 'Mobile') !== false) || 
+              (strpos($useragent, 'MQQBrowser') !== false && strpos($useragent, ' QQ') !== false && strpos($useragent, 'Mobile') !== false)) {
+        return 'qq';
+    } elseif (preg_match('/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|iris|kindle|lge |maemo|midp|mmp|mobile.+firefox|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows ce|xda|xiino/i', $useragent)) {
+        return 'mobile';
+    } else {
+        return 'desktop';
+    }
 }
 
 // 获取当前页码
@@ -95,6 +148,60 @@ try {
 } catch (Exception $e) {
     $error = $e->getMessage();
 }
+
+// 在HTML部分之前的PHP代码末尾添加JavaScript解密函数
+$decryptScript = <<<EOT
+<script>
+function decryptUrl(encryptedData) {
+    try {
+        // 这里只返回一个随机字符串，真实链接通过AJAX获取
+        return Math.random().toString(36).substring(7);
+    } catch(e) {
+        console.error('解密失败');
+        return '';
+    }
+}
+
+// 处理链接点击
+function handleLinkClick(e) {
+    e.preventDefault();
+    const encryptedUrl = e.currentTarget.getAttribute('data-encrypted');
+    if (!encryptedUrl) return;
+
+    // 发送AJAX请求获取真实链接
+    fetch('get_url.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'encrypted=' + encodeURIComponent(encryptedUrl)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.url) {
+            if (!isMobileDevice()) {
+                showQRCode(data.url);
+            } else {
+                window.location.href = data.url;
+            }
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+// 检测是否为移动设备
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+}
+
+// 页面加载完成后绑定事件
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.item').forEach(item => {
+        item.addEventListener('click', handleLinkClick);
+    });
+});
+</script>
+EOT;
 ?>
 
 <!DOCTYPE html>
@@ -689,6 +796,115 @@ try {
                 border: 1px solid var(--border-color);
             }
         }
+
+        /* 添加头像样式 */
+        .avatar-container {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--accent-color);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .avatar:hover {
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .avatar {
+                width: 80px;
+                height: 80px;
+            }
+        }
+
+        /* 添加社交图标样式 */
+        .social-icons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .social-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: var(--card-background);
+            border: 2px solid var(--accent-color);
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .social-icon:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0, 113, 227, 0.2);
+            background: var(--accent-color);
+        }
+
+        .social-icon img.icon {
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+        }
+
+        /* 微信二维码弹窗样式 */
+        #wechatModal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #wechatModal .modal-content {
+            background: var(--card-background);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            max-width: 90%;
+            width: 300px;
+        }
+
+        #wechatModal img {
+            width: 200px;
+            height: 200px;
+            object-fit: contain;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .social-icons {
+                gap: 15px;
+            }
+
+            .social-icon {
+                width: 35px;
+                height: 35px;
+            }
+
+            .social-icon img.icon {
+                width: 20px;
+                height: 20px;
+            }
+        }
     </style>
     <meta name="color-scheme" content="light dark">
     <meta name="theme-color" content="#f5f7fa" media="(prefers-color-scheme: light)">
@@ -716,7 +932,7 @@ try {
 
     // 禁用开发者工具
     function disableDevTools() {
-        let devtools = {
+        const devtools = {
             isOpen: false,
             orientation: undefined
         };
@@ -738,16 +954,11 @@ try {
             ) {
                 if (emitEvents && !devtools.isOpen) {
                     emitEvent(true, orientation);
-                    window.location.reload();
                 }
             } else {
                 if (emitEvents && devtools.isOpen) {
                     emitEvent(false, undefined);
                 }
-            }
-
-            if (window.devtools.isOpen) {
-                window.location.reload();
             }
         };
 
@@ -762,14 +973,14 @@ try {
             }
         });
 
-        // 定期检查，但降低检查频率
+        // 定期检查
         setInterval(checkDevTools, 2000);
     }
 
     // 页面加载完成后启用保护
-    window.onload = function() {
+    window.addEventListener('DOMContentLoaded', function() {
         setTimeout(disableDevTools, 1000);
-    };
+    });
     </script>
 </head>
 <body>
@@ -822,7 +1033,23 @@ try {
     
     <div class="container">
         <div class="header">
-            <h1>持续更新中...</h1>
+            <div class="avatar-container">
+                <img src="images/avatar.png" alt="头像" class="avatar">
+            </div>
+            <div class="social-icons">
+                <a href="javascript:void(0);" class="social-icon" onclick="showWeChatQR()">
+                    <img src="images/wechat.png" alt="微信" class="icon">
+                </a>
+                <a href="你的QQ链接" target="_blank" class="social-icon">
+                    <img src="images/qq.png" alt="QQ" class="icon">
+                </a>
+                <a href="mailto:你的邮箱" class="social-icon">
+                    <img src="images/email.png" alt="邮箱" class="icon">
+                </a>
+                <a href="你的微博地址" target="_blank" class="social-icon">
+                    <img src="images/weibo.png" alt="微博" class="icon">
+                </a>
+            </div>
             <div class="disk-filters">
                 <button class="disk-btn <?php echo $diskType === 'all' ? 'active' : ''; ?>" data-type="all">
                     <img src="images/all.png" alt="全部" class="disk-icon">
@@ -863,41 +1090,34 @@ try {
                 <button type="submit" class="search-button">搜索</button>
             </form>
         </div>
-  <div class="stats">
-            共 <?php echo number_format($result['total']); ?> 条数据
-            <button id="exportBtn" class="export-btn">导出所有数据到本地</button>
-        </div>
-
+        
         <?php if (isset($error)): ?>
             <div class="error"><?php echo htmlspecialchars($error); ?></div>
         <?php else: ?>
             <div class="list">
                 <?php foreach ($result['data'] as $item): ?>
                     <?php
-                        // 清理百度网盘链接
+                        // 清理并加密链接
                         $cleanLink = $item['cover'];
                         if (strpos($cleanLink, 'pan.baidu.com') !== false) {
-                            // 匹配百度网盘链接，提取链接和提取码部分
                             if (preg_match('/(https:\/\/pan\.baidu\.com\/s\/[^\s]+?)(?:\s+提取码:\s*([^\s]+))?$/i', $cleanLink, $matches)) {
-                                // 如果链接中已经包含了提取码参数，直接使用链接
                                 if (strpos($matches[1], '?pwd=') !== false) {
                                     $cleanLink = $matches[1];
                                 } 
-                                // 如果链接中没有提取码参数，但是有单独的提取码，添加到链接中
                                 else if (isset($matches[2])) {
                                     $cleanLink = $matches[1] . '?pwd=' . $matches[2];
                                 }
-                                // 如果只有链接，直接使用
                                 else {
                                     $cleanLink = $matches[1];
                                 }
                             }
                         }
+                        // 加密链接
+                        $encryptedLink = encryptUrl($cleanLink);
                     ?>
-                    <a href="<?php echo htmlspecialchars($cleanLink); ?>" 
-                       class="item" 
-                       data-url="<?php echo htmlspecialchars($cleanLink); ?>"
-                       <?php echo !isMobile() ? '' : 'target="_blank"'; ?>>
+                    <a class="item" 
+                       data-encrypted="<?php echo htmlspecialchars($encryptedLink); ?>"
+                       href="javascript:void(0);">
                         <span class="item-title">
                             <?php echo htmlspecialchars($item['title']); ?>
                         </span>
@@ -969,73 +1189,7 @@ try {
         <?php endif; ?>
     </div>
 
-    <div id="overlay" class="overlay"></div>
-    <div id="exportMenu" class="export-menu">
-        <h3>选择导出格式</h3>
-        <div class="export-options">
-            <button class="export-option" data-format="txt">导出为TXT</button>
-            <button class="export-option" data-format="csv">导出为CSV</button>
-        </div>
-    </div>
-
     <script>
-    document.getElementById('exportBtn').addEventListener('click', function() {
-        document.getElementById('overlay').style.display = 'block';
-        document.getElementById('exportMenu').style.display = 'block';
-    });
-
-    document.getElementById('overlay').addEventListener('click', function() {
-        this.style.display = 'none';
-        document.getElementById('exportMenu').style.display = 'none';
-    });
-
-    document.querySelectorAll('.export-option').forEach(button => {
-        button.addEventListener('click', function() {
-            const format = this.dataset.format;
-            exportData(format);
-            document.getElementById('overlay').style.display = 'none';
-            document.getElementById('exportMenu').style.display = 'none';
-        });
-    });
-
-    function exportData(format) {
-        // 显示加载中状态
-        const exportBtn = document.getElementById('exportBtn');
-        const originalText = exportBtn.textContent;
-        exportBtn.textContent = '导出中...';
-        exportBtn.disabled = true;
-
-        // 发起导出请求
-        fetch(`export.php?format=${format}`)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(response.statusText || '导出失败');
-                }
-                return response.blob();
-            })
-            .then(blob => {
-                // 创建下载链接
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                const extension = format === 'txt' ? 'txt' : 'csv';
-                a.href = url;
-                a.download = `资源数据_${new Date().toISOString().split('T')[0]}.${extension}`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            })
-            .catch(error => {
-                console.error('导出错误:', error);
-                alert('导出失败：' + error.message);
-            })
-            .finally(() => {
-                // 恢复按钮状态
-                exportBtn.textContent = originalText;
-                exportBtn.disabled = false;
-            });
-    }
-
     document.addEventListener('DOMContentLoaded', function() {
         const buttons = document.querySelectorAll('.disk-btn');
         const diskTypeInput = document.getElementById('diskType');
@@ -1111,7 +1265,7 @@ try {
         qrcodeContainer.innerHTML = '';
         
         // 生成新的二维码
-        const qrcode = new QRCode(qrcodeContainer, {
+        new QRCode(qrcodeContainer, {
             text: url,
             width: 180,
             height: 180,
@@ -1120,35 +1274,7 @@ try {
             correctLevel: QRCode.CorrectLevel.H,
             title: ''
         });
-
-        // 移除二维码图片的所有提示和事件
-        const observer = new MutationObserver((mutations) => {
-            const qrImage = qrcodeContainer.querySelector('img');
-            if (qrImage) {
-                qrImage.removeAttribute('title');
-                qrImage.removeAttribute('alt');
-                qrImage.style.pointerEvents = 'none';
-                qrImage.addEventListener('mouseover', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }, true);
-                observer.disconnect();
-            }
-        });
-
-        observer.observe(qrcodeContainer, {
-            childList: true,
-            subtree: true
-        });
-
-        // 阻止容器的默认事件
-        qrcodeContainer.addEventListener('mouseover', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            return false;
-        }, true);
-
+        
         modal.style.display = 'flex';
     }
     
@@ -1170,14 +1296,98 @@ try {
         
         links.forEach(function(link) {
             link.addEventListener('click', function(e) {
-                if (!isMobile()) {
-                    e.preventDefault();
-                    const url = this.getAttribute('data-url');
-                    showModal(url);
+                e.preventDefault(); // 始终阻止默认行为
+                const encryptedUrl = this.getAttribute('data-encrypted');
+                if (!encryptedUrl) return;
+                
+                // 检查环境
+                if (isValidClient() && <?php echo isMobile() ? 'true' : 'false'; ?>) {
+                    // 在合适的环境下，先获取真实链接再跳转
+                    fetch('get_url.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'encrypted=' + encodeURIComponent(encryptedUrl)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.url) {
+                            window.location.href = data.url;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('链接获取失败，请重试');
+                    });
+                } else {
+                    // 非微信/QQ环境下显示二维码
+                    fetch('get_url.php', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: 'encrypted=' + encodeURIComponent(encryptedUrl)
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.url) {
+                            showModal(data.url);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('二维码生成失败，请重试');
+                    });
                 }
             });
         });
     });
+
+    // 更新客户端环境检测
+    function isValidClient() {
+        const ua = navigator.userAgent.toLowerCase();
+        // 检查是否是微信
+        const isWechat = /micromessenger/i.test(ua);
+        // 检查是否是QQ（必须是移动设备中的QQ）
+        const isQQ = /mobile.*qq\//i.test(ua) || (/mobile/i.test(ua) && / qq/i.test(ua));
+        // 检查是否是模拟器或开发者工具
+        const isFake = /chrome/i.test(ua) && /mobile/i.test(ua) && !/safari/i.test(ua) || 
+                      /devtools/i.test(ua) || 
+                      (/android/i.test(ua) && /linux/i.test(ua) && /chrome/i.test(ua) && !/version/i.test(ua)) ||
+                      (/iphone/i.test(ua) && /mac/i.test(ua) && /chrome/i.test(ua));
+        
+        return (isWechat || isQQ) && !isFake;
+    }
+
+    // 添加微信二维码显示函数
+    function showWeChatQR() {
+        const modal = document.createElement('div');
+        modal.id = 'wechatModal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <h3>扫码添加微信</h3>
+                <img src="images/wechat-qr.png" alt="微信二维码">
+                <button onclick="closeWeChatQR()">关闭</button>
+            </div>
+        `;
+        document.body.appendChild(modal);
+        modal.style.display = 'flex';
+
+        // 点击遮罩层关闭
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeWeChatQR();
+            }
+        });
+    }
+
+    function closeWeChatQR() {
+        const modal = document.getElementById('wechatModal');
+        if (modal) {
+            modal.remove();
+        }
+    }
     </script>
 </body>
 </html> 
